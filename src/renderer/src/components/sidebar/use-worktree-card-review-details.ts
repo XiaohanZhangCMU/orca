@@ -13,6 +13,7 @@ import {
 } from './worktree-card-pr-display'
 import type { WorktreeCardProps } from './worktree-card-model'
 import type { useWorktreeCardFoundation } from './use-worktree-card-foundation'
+import { getPodStarterWorkspacePath } from '@/features/baseten-hosts/starter-workspace-presentation'
 
 type Foundation = ReturnType<typeof useWorktreeCardFoundation>
 
@@ -38,7 +39,10 @@ export function useWorktreeCardReviewDetails({
   const folderPathIdentityDisplay =
     isFolder && hasProjectGroups && worktree.path.trim().length > 0 ? worktree.path : undefined
   const identityDisplay = branchIdentityDisplay ?? folderPathIdentityDisplay
-  const hasPathIdentityEnabled = cardProps.includes('branch')
+  const podWorkspacePath = isFolder
+    ? getPodStarterWorkspacePath(worktree, projectGroups)
+    : undefined
+  const hasPathIdentityEnabled = cardProps.includes('branch') || Boolean(podWorkspacePath)
   const showIdentityInNewCard = newCardStyle && hasPathIdentityEnabled && Boolean(identityDisplay)
   const folderMetaRowContent = newCardStyle
     ? hasPathIdentityEnabled && Boolean(folderPathIdentityDisplay)
@@ -181,6 +185,7 @@ export function useWorktreeCardReviewDetails({
     branchIdentityDisplay,
     folderPathIdentityDisplay,
     identityDisplay,
+    podWorkspacePath,
     showIdentityInNewCard,
     folderMetaRowContent,
     hostedReviewCacheKey,

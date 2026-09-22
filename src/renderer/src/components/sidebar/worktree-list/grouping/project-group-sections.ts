@@ -15,6 +15,10 @@ import {
   withRepoSectionDisplayLabels
 } from './section-order'
 import { buildFolderWorkspaceRow } from './row-builders'
+import { getProjectGroupHostId } from '@/store/slices/project-group-owner-routing'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../../../../shared/execution-host'
+import { getHostContextLabel } from '../../../../../../shared/worktree/host-context-labels'
+import { isPodStarterWorkspaceGroup } from '@/features/baseten-hosts/starter-workspace-presentation'
 
 export function appendProjectGroupSections(
   ctx: SectionAppendContext,
@@ -97,15 +101,22 @@ export function appendProjectGroupSections(
     const repoEntries = sortRepoEntriesWithinGroup(groupByProjectGroupId.get(projectGroup.id) ?? [])
     const childGroups = childGroupsByParentId.get(projectGroup.id) ?? []
     const key = getProjectGroupHeaderKey(projectGroup.id)
+    const hostId = getProjectGroupHostId(projectGroup)
+    const hostContextLabel =
+      hostId !== LOCAL_EXECUTION_HOST_ID
+        ? getHostContextLabel(hostId, { hostLabelById: ctx.hostLabelById })
+        : undefined
+    const useHostHeading = isPodStarterWorkspaceGroup(projectGroup)
     result.push({
       type: 'header',
       key,
-      label: projectGroup.name,
+      label: useHostHeading && hostContextLabel ? hostContextLabel : projectGroup.name,
       count: getProjectGroupSubtreeCount(projectGroup.id),
       tone: PROJECT_GROUP_META.tone,
       icon: PROJECT_GROUP_META.icon,
       projectGroup,
-      projectGroupDepth: depth
+      projectGroupDepth: depth,
+      ...(hostContextLabel && !useHostHeading ? { hostContextLabel } : {})
     })
     if (!collapsedGroups.has(key)) {
       for (const pair of folderWorkspacesByProjectGroupId.get(projectGroup.id) ?? []) {

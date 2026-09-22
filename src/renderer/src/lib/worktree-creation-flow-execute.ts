@@ -35,7 +35,8 @@ function isPendingCreationSurfaceVisible(creationId: string): boolean {
 
 export async function executeWorktreeCreation(
   creationId: string,
-  request: WorktreeCreationRequest
+  request: WorktreeCreationRequest,
+  onCreated?: (worktreeId: string) => void
 ): Promise<void> {
   const preparedRequest = await prepareRequestForCreate(creationId, request)
   if (!preparedRequest) {
@@ -315,4 +316,5 @@ export async function executeWorktreeCreation(
     backendSpawned,
     focusOnCompletion: shouldActivateOnCompletion
   })
+  onCreated?.(worktree.id)
 }

@@ -20,23 +20,53 @@ type ContinueBackgroundWorktreeCreationOptions = {
   revealCreationSurface?: boolean
 }
 
+const completionCallbacks = new Map<string, Set<(worktreeId: string) => void>>()
+export function observeBackgroundWorktreeCreation(
+  creationId: string,
+  callback?: (worktreeId: string) => void
+): void {
+  if (!callback) {
+    return
+  }
+  const callbacks = completionCallbacks.get(creationId) ?? new Set()
+  callbacks.add(callback)
+  completionCallbacks.set(creationId, callbacks)
+}
+
 // Why: nothing awaits these creations, so an escaped rejection would otherwise
 // strand the pending entry — and the creation surface — with no error shown.
-function startWorktreeCreation(creationId: string, request: WorktreeCreationRequest): void {
-  executeWorktreeCreation(creationId, request).catch((error: unknown) => {
-    console.error('worktree create: unhandled failure', creationId, error)
-    const store = useAppStore.getState()
-    if (!store.pendingWorktreeCreations[creationId]) {
-      return
-    }
-    const message = getWorkspaceCreateErrorToastMessage(formatWorkspaceCreateError(error))
-    store.updatePendingWorktreeCreation(creationId, { status: 'error', error: message })
-    // Why: the panel renders this error inline while its surface is visible;
-    // only announce it separately after the user has navigated away.
-    if (!(store.activeView === 'terminal' && store.activePendingCreationId === creationId)) {
-      toast.error(message)
+function startWorktreeCreation(
+  creationId: string,
+  request: WorktreeCreationRequest,
+  onCreated?: (worktreeId: string) => void
+): void {
+  observeBackgroundWorktreeCreation(creationId, onCreated)
+  executeWorktreeCreation(creationId, request, (worktreeId) => {
+    const callbacks = completionCallbacks.get(creationId)
+    completionCallbacks.delete(creationId)
+    for (const callback of callbacks ?? []) {
+      callback(worktreeId)
     }
   })
+    .catch((error: unknown) => {
+      console.error('worktree create: unhandled failure', creationId, error)
+      const store = useAppStore.getState()
+      if (!store.pendingWorktreeCreations[creationId]) {
+        return
+      }
+      const message = getWorkspaceCreateErrorToastMessage(formatWorkspaceCreateError(error))
+      store.updatePendingWorktreeCreation(creationId, { status: 'error', error: message })
+      // Why: the panel renders this error inline while its surface is visible;
+      // only announce it separately after the user has navigated away.
+      if (!(store.activeView === 'terminal' && store.activePendingCreationId === creationId)) {
+        toast.error(message)
+      }
+    })
+    .finally(() => {
+      if (!useAppStore.getState().pendingWorktreeCreations[creationId]) {
+        completionCallbacks.delete(creationId)
+      }
+    })
 }
 
 function revealPendingCreation(
@@ -69,13 +99,17 @@ function revealPendingCreation(
  * immediately and the work outlives the now-closed modal. Progress and errors
  * surface on the pending creation's sidebar row and content panel.
  */
-export function runBackgroundWorktreeCreation(request: WorktreeCreationRequest): string {
+export function runBackgroundWorktreeCreation(
+  request: WorktreeCreationRequest,
+  onCreated?: (worktreeId: string) => void
+): string {
   const store = useAppStore.getState()
   const existingCreationId = findPendingLinkedWorkItemCreationId(
     store.pendingWorktreeCreations,
     request
   )
   if (existingCreationId) {
+    observeBackgroundWorktreeCreation(existingCreationId, onCreated)
     store.setActivePendingWorktreeCreation(existingCreationId)
     store.setActiveView('terminal')
     store.setSidebarOpen(true)
@@ -85,7 +119,7 @@ export function runBackgroundWorktreeCreation(request: WorktreeCreationRequest):
   // client over plain HTTP). createBrowserUuid falls back to getRandomValues.
   const creationId = createBrowserUuid()
   revealPendingCreation(creationId, request, getInitialWorktreeCreationPhase(request))
-  startWorktreeCreation(creationId, request)
+  startWorktreeCreation(creationId, request, onCreated)
   return creationId
 }
 

@@ -1,4 +1,5 @@
 import React from 'react'
+import { ManagerTeamMenuItem } from '@/features/manager-team/ManagerTeamMenuItem'
 import { SortableContext } from '@dnd-kit/sortable'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
@@ -277,6 +278,7 @@ export function renderTabBarSurface({
               />
             </>
           ) : null}
+          {!terminalOnly && showAgentLaunchItems && <ManagerTeamMenuItem worktreeId={worktreeId} />}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

@@ -28,6 +28,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     detachedHeadDisplay,
     branch,
     identityDisplay,
+    podWorkspacePath,
     folderMetaRowContent,
     showIdentityInNewCard,
     conflictOperation,
@@ -107,7 +108,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     showMetaRowDetails
   )
   const hasMetaRow = compactCards
-    ? hasMetadataBadge || cacheStartedAt != null
+    ? Boolean(podWorkspacePath) || hasMetadataBadge || cacheStartedAt != null
     : hasDetailedMetaRowContent
   const showHeaderActions = showTitleRowPrimary || showDeleteQuickAction
   // Why: normalize the title once so title/branch de-dupe and identity-only hover eligibility stay in sync.

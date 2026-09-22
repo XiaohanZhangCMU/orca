@@ -263,6 +263,7 @@ module.exports = {
   // entries reached solely from the Electron main process stay packed, since
   // asar redirects their app.asar paths.
   asarUnpack: [
+    'out/manager/**',
     'out/package.json',
     'out/cli/**',
     'out/shared/**',

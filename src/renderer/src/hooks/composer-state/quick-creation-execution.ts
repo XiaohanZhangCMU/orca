@@ -12,6 +12,7 @@ type QuickCreationExecutionInput = Pick<
   | 'linkedGitLabMR'
   | 'normalizedSparseDirectories'
   | 'onCreated'
+  | 'onWorkspaceCreated'
   | 'parentWorktreeId'
   | 'persistDraft'
   | 'persistSetupAgentStartupPolicy'
@@ -60,6 +61,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
     linkedGitLabMR,
     normalizedSparseDirectories,
     onCreated,
+    onWorkspaceCreated,
     parentWorktreeId,
     persistDraft,
     persistSetupAgentStartupPolicy,
@@ -267,7 +269,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         clearNewWorkspaceDraft()
       }
 
-      runBackgroundWorktreeCreation(request)
+      runBackgroundWorktreeCreation(request, onWorkspaceCreated)
 
       if (createMultiple) {
         resetForNextCreate()
@@ -286,6 +288,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       linkedGitLabMR,
       normalizedSparseDirectories,
       onCreated,
+      onWorkspaceCreated,
       parentWorktreeId,
       persistDraft,
       persistSetupAgentStartupPolicy,

@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { observeBackgroundWorktreeCreation } from '@/lib/worktree-creation-flow'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
 import { findPendingLinkedWorkItemCreationId } from '@/lib/pending-worktree-creation'
@@ -23,6 +24,7 @@ type QuickSubmitActionInput = Pick<
   | 'linkedPR'
   | 'name'
   | 'onCreated'
+  | 'onWorkspaceCreated'
   | 'parsedLinkedIssueNumber'
   | 'repoId'
   | 'requiresExplicitSetupChoice'
@@ -49,6 +51,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
     linkedPR,
     name,
     onCreated,
+    onWorkspaceCreated,
     parsedLinkedIssueNumber,
     repoId,
     requiresExplicitSetupChoice,
@@ -120,6 +123,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
       )
 
       if (pendingCreationId) {
+        observeBackgroundWorktreeCreation(pendingCreationId, onWorkspaceCreated)
         liveStore.setActivePendingWorktreeCreation(pendingCreationId)
         liveStore.setActiveView('terminal')
         liveStore.setSidebarOpen(true)
@@ -166,6 +170,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
       linkedPR,
       name,
       onCreated,
+      onWorkspaceCreated,
       parsedLinkedIssueNumber,
       repoId,
       requiresExplicitSetupChoice,

@@ -1,5 +1,8 @@
 import { ChevronDown, Loader2, RefreshCw } from 'lucide-react'
 import type { PublicKnownRuntimeEnvironment } from '../../../../shared/runtime-environments'
+import { toRuntimeExecutionHostId } from '../../../../shared/execution-host'
+import { getEffectiveHostSetting } from '../../../../shared/host-setting-overrides'
+import { useAppStore } from '@/store'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import { Button } from '../ui/button'
@@ -43,6 +46,14 @@ export function RuntimeActiveServerSection({
   onValueChange,
   onRefresh
 }: RuntimeActiveServerSectionProps): React.JSX.Element {
+  const settings = useAppStore((state) => state.settings)
+  const hostLabel = (environment: PublicKnownRuntimeEnvironment): string =>
+    getEffectiveHostSetting(
+      settings,
+      toRuntimeExecutionHostId(environment.id),
+      'displayLabel',
+      environment.name
+    )
   return (
     <div data-settings-section="default-runtime" className={!visible ? 'hidden' : undefined}>
       <Button
@@ -122,7 +133,7 @@ export function RuntimeActiveServerSection({
                   ) : null}
                   {environments.map((environment) => (
                     <SelectItem key={environment.id} value={environment.id}>
-                      {environment.name}
+                      {hostLabel(environment)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -162,7 +173,7 @@ export function RuntimeActiveServerSection({
                         className="grid gap-1 rounded-md px-2 py-1.5 text-[11px] text-muted-foreground sm:grid-cols-[minmax(0,9rem)_minmax(0,1fr)]"
                       >
                         <div className="truncate font-medium text-foreground">
-                          {environment.name}
+                          {hostLabel(environment)}
                         </div>
                         <div className="min-w-0 space-y-0.5">
                           <div className="truncate font-mono">

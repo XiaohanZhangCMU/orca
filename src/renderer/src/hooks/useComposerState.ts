@@ -42,6 +42,7 @@ export type UseComposerStateOptions = {
   initialBaseBranch?: string
   persistDraft: boolean
   onCreated?: () => void
+  onWorkspaceCreated?: (worktreeId: string) => void
   isSubmissionCancelled?: () => boolean
   repoIdOverride?: string
   onRepoIdOverrideChange?: (value: string) => void

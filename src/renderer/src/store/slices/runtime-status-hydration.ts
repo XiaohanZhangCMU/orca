@@ -58,14 +58,17 @@ export function createRuntimeStatusHydration({
   publishEnvironments,
   refreshEnvironmentStatus,
   markCatalogSettled
-}: RuntimeStatusHydrationDependencies): () => Promise<void> {
+}: RuntimeStatusHydrationDependencies): (options?: { refreshCatalog?: boolean }) => Promise<void> {
   let inFlight: Promise<void> | null = null
   let expectedRevisions: ReadonlyMap<string, number> | null = null
   let rerunRequested = false
 
-  return () => {
+  return (options) => {
     if (inFlight) {
-      if (expectedRevisions && !revisionsMatch(getCurrentEnvironments(), expectedRevisions)) {
+      if (
+        options?.refreshCatalog ||
+        (expectedRevisions && !revisionsMatch(getCurrentEnvironments(), expectedRevisions))
+      ) {
         rerunRequested = true
       }
       return inFlight

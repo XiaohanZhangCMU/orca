@@ -4,6 +4,7 @@ import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { translate } from '@/i18n/i18n'
 import { RecoverableRenderErrorBoundary } from '../components/error-boundaries/RecoverableRenderErrorBoundary'
 import NewWorkspaceComposerModal from '../components/NewWorkspaceComposerModal'
+import { ManagerTeamHost } from '@/features/manager-team/ManagerTeamHost'
 import { CrashReportDialog } from '../components/crash-report/CrashReportDialog'
 import { MarkdownTemplatePicker } from '../components/editor/MarkdownTemplatePicker'
 import RecentTabSwitcher from '../components/tab-bar/RecentTabSwitcher'
@@ -193,6 +194,7 @@ export function AppRootSurfaces(props: {
         </Suspense>
       ) : null}
       {/* Why: keep in the entry bundle so a stale/corrupt lazy chunk can't strand users at Create. */}
+      <ManagerTeamHost />
       {activeModal === 'new-workspace-composer' ? (
         <ModalBoundary boundaryId="modal.new-workspace-composer" resetKey>
           <NewWorkspaceComposerModal />

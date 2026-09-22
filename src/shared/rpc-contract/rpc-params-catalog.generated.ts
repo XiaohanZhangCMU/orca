@@ -344,6 +344,11 @@ import {
   WorkspaceSelection
 } from './linear-params'
 import { CreateProject } from './linear-project-create-params'
+import {
+  managerTeamModelsSchema,
+  managerTeamPrepareSchema,
+  managerTeamRunSchema
+} from './manager-team-params'
 import { NativeChatSession, NativeChatUnsubscribe } from './native-chat-params'
 import {
   NotificationGetMissedSinceParams,
@@ -959,6 +964,10 @@ export const RPC_PARAMS_BY_METHOD = {
   'linear.teamStates': TeamId,
   'linear.testConnection': WorkspaceSelection,
   'linear.updateIssue': IssueUpdateOfLinearParams,
+  'managerTeam.inspect': managerTeamRunSchema,
+  'managerTeam.launch': managerTeamRunSchema,
+  'managerTeam.models': managerTeamModelsSchema,
+  'managerTeam.prepare': managerTeamPrepareSchema,
   'markdown.readTab': ActivateTab,
   'markdown.saveTab': SaveMarkdownTab,
   'mobileWeb.bundle.chunk': MobileWebBundleChunkParamsSchema,

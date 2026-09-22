@@ -14,6 +14,7 @@
 import process from 'node:process'
 import { setAppEnvironment, type AppEnvironment } from '../../shared/app-environment'
 import { setSecretStore, type SecretStore } from '../../shared/secret-store'
+import { HEADLESS_RUNTIME_WINDOW_ID } from '../../shared/runtime-types'
 import type { ServeReadiness } from '../server/serve-readiness'
 import { setRuntimeBrowserCommandsFactory } from '../runtime/runtime-browser-commands-factory'
 import { resolveOrcadBrowserProvider } from './orcad-browser-provider'
@@ -93,6 +94,8 @@ export type OrcadOptions = {
   port?: number
   json?: boolean
   noPairing?: boolean
+  mobilePairing?: boolean
+  withMobilePairing?: boolean
   pairingAddress?: string
   /** Literal IP to bind. Defaults to loopback; see orcad-bind-address.ts. */
   bind?: string
@@ -295,6 +298,9 @@ async function startOrcadRuntime(
   // Recovery binds terminal and dispatch identities; only now can startup observations be fenced.
   observedStatusCapture.attach(runtime)
 
+  // No renderer will publish the initial graph on a Node host.
+  runtime.syncWindowGraph(HEADLESS_RUNTIME_WINDOW_ID, { tabs: [], leaves: [] })
+
   const bindHost = resolveOrcadBindHost(options.bind)
   rpc = new OrcaRuntimeRpcServer({
     runtime,
@@ -329,10 +335,14 @@ async function startOrcadRuntime(
       } as const)
     : rpc.createPairingOffer({
         address: options.pairingAddress,
-        name: `CLI ${new Date().toLocaleDateString()}`,
-        scope: 'runtime'
+        name: `${options.mobilePairing ? 'Mobile' : 'CLI'} ${new Date().toLocaleDateString()}`,
+        scope: options.mobilePairing ? 'mobile' : 'runtime'
       })
 
+  if (options.withMobilePairing) {
+    const { publishPhonePairing } = await import('../baseten-hosts/publish-phone-pairing')
+    publishPhonePairing(rpc, runtimeUserDataPath, runtime.getRuntimeId(), options.pairingAddress)
+  }
   const readiness: ServeReadiness = {
     runtimeId: runtime.getRuntimeId(),
     boundEndpoint,
@@ -347,7 +357,7 @@ async function startOrcadRuntime(
           endpoint: offer.endpoint,
           deviceId: offer.deviceId,
           webClientUrl: offer.webClientUrl,
-          scope: 'runtime',
+          scope: options.mobilePairing ? 'mobile' : 'runtime',
           qr: null
         }
       : offer,

@@ -1,5 +1,7 @@
 import { AlertTriangle, Loader2, Server, ServerOff, Trash2 } from 'lucide-react'
 import type { PublicKnownRuntimeEnvironment } from '../../../../shared/runtime-environments'
+import { toRuntimeExecutionHostId } from '../../../../shared/execution-host'
+import { getEffectiveHostSetting } from '../../../../shared/host-setting-overrides'
 import type { RemoteServerUpdateEntry } from '@/runtime/remote-server-update-coordinator'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
@@ -9,6 +11,7 @@ import {
 } from '@/runtime/runtime-host-connection-state'
 import { useAppStore } from '@/store'
 import { Button } from '../ui/button'
+import { HostRenameButton } from '../HostRenameButton'
 import {
   getHostDetailsDescription,
   getHostDetailsSummary,
@@ -57,6 +60,10 @@ export function RuntimeServerRow({
   onConnect,
   onRemove
 }: RuntimeServerRowProps): React.JSX.Element {
+  const hostId = toRuntimeExecutionHostId(environment.id)
+  const label = useAppStore((state) =>
+    getEffectiveHostSetting(state.settings, hostId, 'displayLabel', environment.name)
+  )
   const runtimeStatusEntry = useAppStore((state) =>
     state.runtimeStatusByEnvironmentId.get(environment.id)
   )
@@ -95,11 +102,14 @@ export function RuntimeServerRow({
   const actionBusy = connecting || switching || disconnecting || removing
 
   return (
-    <div data-settings-section={environment.id} className="flex items-center gap-3 px-4 py-3">
+    <div
+      data-settings-section={environment.id}
+      className="flex flex-wrap items-center gap-3 px-4 py-3"
+    >
       <Server className="size-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="truncate text-sm font-medium">{environment.name}</div>
+          <div className="truncate text-sm font-medium">{label}</div>
           <span
             className={cn(
               'size-2 shrink-0 rounded-full',
@@ -115,6 +125,9 @@ export function RuntimeServerRow({
             <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
           ) : null}
         </div>
+        {label !== environment.name && (
+          <p className="break-all font-mono text-xs text-muted-foreground">{environment.name}</p>
+        )}
         <p className="truncate text-xs text-muted-foreground">
           {environment.connectionDependency === 'ssh-tunnel'
             ? translate(
@@ -167,6 +180,7 @@ export function RuntimeServerRow({
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1">
+        <HostRenameButton hostId={hostId} derivedLabel={environment.name} disabled={removing} />
         {remoteUpdate?.phase === 'available' || remoteUpdate?.phase === 'failed' ? (
           <Button
             type="button"
@@ -221,7 +235,7 @@ export function RuntimeServerRow({
           aria-label={translate(
             'auto.components.settings.RuntimeEnvironmentsPane.aeb26635d2',
             'Remove {{value0}}',
-            { value0: environment.name }
+            { value0: label }
           )}
         >
           {removing ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}

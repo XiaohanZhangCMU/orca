@@ -24,6 +24,7 @@ export type GroupHeaderRow = {
   repo?: Repo
   projectGroup?: ProjectGroup | { id: null; name: 'Ungrouped'; tabOrder: number }
   projectGroupDepth?: number
+  hostContextLabel?: string
   hostId?: ExecutionHostId
   hostWorktreeCounts?: ReadonlyMap<ExecutionHostId, number>
   hostWorktreeIds?: ReadonlyMap<ExecutionHostId, readonly string[]>

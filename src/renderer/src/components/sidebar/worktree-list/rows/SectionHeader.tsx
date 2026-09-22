@@ -42,6 +42,7 @@ import {
 } from './header-event-guards'
 import type { WorktreeSidebarHeaderDrag } from '../drag/use-header-drag'
 import { getWorktreeOptionId } from './option-dom'
+import { TruncatedSidebarLabel } from '../../truncated-sidebar-label'
 
 export type SectionHeaderRowContext = {
   groupBy: WorktreeGroupBy
@@ -232,7 +233,8 @@ export function renderWorktreeSectionHeaderRow(args: {
         className={cn(
           // Why: no row-level grab — only the title surface below shows the hand;
           // actions use cursor-pointer so … / + never look reorderable.
-          'group relative flex h-7 w-full items-center gap-1.5 pr-2 text-left transition-all',
+          'group relative flex w-full items-center gap-1.5 pr-2 text-left transition-all',
+          row.hostContextLabel ? 'h-11' : 'h-7',
           !(isDraggableRepoHeader || isDraggableProjectGroupHeader) && 'cursor-pointer',
           ctx.highlightedRevealRowKey === row.key &&
             'rounded-md bg-worktree-sidebar-accent ring-1 ring-worktree-sidebar-ring/50',
@@ -330,13 +332,20 @@ export function renderWorktreeSectionHeaderRow(args: {
 
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
-              <div className="min-w-0 truncate text-[13px] font-semibold leading-none">
-                {row.label}
-              </div>
+              <TruncatedSidebarLabel
+                text={row.label}
+                className="text-[13px] font-semibold leading-none"
+              />
               <RepoForkIndicator upstream={row.repo?.upstream} />
               <FolderPathStatusIndicator status={projectGroupPathStatus} />
               {isRepoHeader ? <RepoScanUnavailableIndicator repo={row.repo!} /> : null}
             </div>
+            {row.hostContextLabel ? (
+              <TruncatedSidebarLabel
+                text={row.hostContextLabel}
+                className="mt-1 text-xs text-muted-foreground"
+              />
+            ) : null}
           </div>
         </div>
 
@@ -364,7 +373,9 @@ export function renderWorktreeSectionHeaderRow(args: {
               groupId={projectGroupIdForHeader}
               hostId={projectGroupHostIdForHeader}
               label={row.label}
-              onRename={ctx.onRenameProjectGroup}
+              onRename={(groupId, _label, hostId) =>
+                ctx.onRenameProjectGroup(groupId, row.projectGroup?.name ?? row.label, hostId)
+              }
               onDelete={ctx.onDeleteProjectGroup}
             />
           ) : null}

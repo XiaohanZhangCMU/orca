@@ -4,6 +4,7 @@ import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import {
   HOST_STICKY_PINNED_HEIGHT,
   buildLineageRowRekeyMap,
+  estimateRenderRowSize,
   extractWorktreeVirtualRowIndexes,
   getActiveStickyIndexesForScroll,
   getStickyHeaderIndexes,
@@ -73,6 +74,16 @@ describe('getRenderRowKey', () => {
     expect(getRenderRowKey(groupRow('workspace-status:in-progress'))).toBe(
       'hdr:workspace-status:in-progress'
     )
+  })
+})
+
+describe('project group host label height', () => {
+  it('reserves a second line only for headers that display their host', () => {
+    const local = groupRow('local-group')
+    const remote = { ...groupRow('remote-group'), hostContextLabel: 'CPU pod' }
+    expect(estimateRenderRowSize([local], 0, 0, null)).toBe(28)
+    expect(estimateRenderRowSize([remote], 0, 0, null)).toBe(44)
+    expect(estimateRenderRowSize([local, remote], 1, 0, null)).toBe(48)
   })
 })
 

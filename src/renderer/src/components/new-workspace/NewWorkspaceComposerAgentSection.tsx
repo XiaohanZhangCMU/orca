@@ -10,6 +10,7 @@ import type { NewWorkspaceComposerCardProps } from './new-workspace-composer-car
 type NewWorkspaceComposerAgentSectionProps = Pick<
   NewWorkspaceComposerCardProps,
   | 'quickAgent'
+  | 'workflowOption'
   | 'onQuickAgentChange'
   | 'onOpenAgentSettings'
   | 'createDisabled'
@@ -26,6 +27,7 @@ type NewWorkspaceComposerAgentSectionProps = Pick<
 
 export function NewWorkspaceComposerAgentSection({
   quickAgent,
+  workflowOption,
   onQuickAgentChange,
   onOpenAgentSettings,
   createDisabled,
@@ -66,6 +68,7 @@ export function NewWorkspaceComposerAgentSection({
           </Tooltip>
         </div>
         <AgentCombobox
+          workflowOption={workflowOption}
           agents={visibleQuickAgents}
           value={quickAgent}
           onValueChange={onQuickAgentChange}

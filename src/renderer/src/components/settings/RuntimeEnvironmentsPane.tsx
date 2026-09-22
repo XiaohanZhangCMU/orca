@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { BasetenHostsPane } from '@/features/baseten-hosts/BasetenHostsPane'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { PublicKnownRuntimeEnvironment } from '../../../../shared/runtime-environments'
 import { useAppStore } from '@/store'
@@ -234,6 +235,19 @@ export function RuntimeEnvironmentsPane({
         onDisconnect={(environment) => void disconnectEnvironment(environment)}
         onRemove={openRemoveDialog}
       />
+
+      {(visibleWorkflow === 'baseten' || visibleWorkflow === 'connect') && (
+        <BasetenHostsPane
+          compact={visibleWorkflow === 'connect'}
+          environments={environments}
+          details={detailsByEnvironmentId}
+          onRefreshConnections={loadEnvironments}
+          onConnected={async () => {
+            await loadEnvironments()
+          }}
+          onSetup={() => setWorkflow('baseten')}
+        />
+      )}
 
       <div className={cn('space-y-5 pt-2', visibleWorkflow !== 'cloud-vm' && 'hidden')}>
         <CloudVmSetupGuide />

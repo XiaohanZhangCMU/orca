@@ -1,0 +1,74 @@
+name: Manager extension
+
+on:
+  pull_request:
+    paths:
+      - 'extensions/manager/**'
+      - 'src/cli/**'
+      - 'src/main/manager-team/**'
+      - 'src/main/runtime/rpc/methods/index.ts'
+      - 'src/shared/manager-team-contract.ts'
+      - 'src/shared/agent-session-option-*.ts'
+      - 'src/main/runtime/rpc/methods/orchestration/worker/worker-launch-preferences.ts'
+      - 'src/shared/rpc-contract/**'
+      - 'src/renderer/src/features/manager-team/**'
+      - 'src/renderer/src/components/tab-bar/tab-bar-surface.tsx'
+      - 'config/scripts/build-orcad.mjs'
+      - 'config/electron-builder.config.cjs'
+      - 'src/shared/child-process/**'
+      - 'src/shared/protocol-version.ts'
+      - 'src/shared/runtime-*'
+      - 'src/renderer/src/assets/main.css'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/manager-extension.yml'
+  push:
+    branches: [main, feat/manager-reports]
+    paths:
+      - 'extensions/manager/**'
+      - 'src/cli/**'
+      - 'src/main/manager-team/**'
+      - 'src/main/runtime/rpc/methods/index.ts'
+      - 'src/shared/manager-team-contract.ts'
+      - 'src/shared/agent-session-option-*.ts'
+      - 'src/main/runtime/rpc/methods/orchestration/worker/worker-launch-preferences.ts'
+      - 'src/shared/rpc-contract/**'
+      - 'src/renderer/src/features/manager-team/**'
+      - 'src/renderer/src/components/tab-bar/tab-bar-surface.tsx'
+      - 'config/scripts/build-orcad.mjs'
+      - 'config/electron-builder.config.cjs'
+      - 'src/shared/child-process/**'
+      - 'src/shared/protocol-version.ts'
+      - 'src/shared/runtime-*'
+      - 'src/renderer/src/assets/main.css'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/manager-extension.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      ORCA_BACKGROUND_LAUNCH: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/setup@v2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: node extensions/manager/build.mjs --host
+      - run: node node_modules/typescript/bin/tsc --noEmit -p extensions/manager/tsconfig.json
+      - run: node node_modules/oxlint/bin/oxlint extensions/manager src/main/manager-team src/renderer/src/features/manager-team src/shared/manager-team-contract.ts --deny-warnings
+      - run: node node_modules/vitest/vitest.mjs run --config config/vitest.config.ts src/main/manager-team src/renderer/src/features/manager-team src/shared/agent-session-option-catalog-opencode.test.ts
+      - run: node ../../node_modules/vitest/vitest.mjs run --config vitest.config.ts
+        working-directory: extensions/manager

@@ -28,6 +28,7 @@ import {
   clearRuntimeEnvironmentManualDisconnect,
   isRuntimeEnvironmentManuallyDisconnected,
   markRuntimeEnvironmentManuallyDisconnected,
+  prepareRuntimeEnvironmentConnection,
   RUNTIME_MANUALLY_DISCONNECTED_MESSAGE
 } from './runtime-environment-manual-disconnect'
 import {
@@ -145,6 +146,10 @@ export function registerRuntimeEnvironmentConnectivityHandlers({
     ): Promise<RuntimeRpcResponse<RuntimeStatus>> => {
       const environment = resolveEnvironment(getUserDataPath(), args.selector)
       clearRuntimeEnvironmentManualDisconnect(environment.id)
+      await prepareRuntimeEnvironmentConnection(environment.id)
+      if (isRuntimeEnvironmentManuallyDisconnected(environment.id)) {
+        return manuallyDisconnectedResponse(environment)
+      }
       return getRuntimeEnvironmentStatus(getUserDataPath(), environment.id, args.timeoutMs, {
         reconnect: true
       })

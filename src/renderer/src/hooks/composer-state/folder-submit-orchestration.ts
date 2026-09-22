@@ -17,6 +17,7 @@ type FolderSubmitOrchestrationInput = Pick<
   | 'name'
   | 'note'
   | 'onCreated'
+  | 'onWorkspaceCreated'
   | 'persistDraft'
   | 'resolvePendingSmartGitHubSubmit'
   | 'selectedProjectGroup'
@@ -65,6 +66,7 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
     name,
     note,
     onCreated,
+    onWorkspaceCreated,
     persistDraft,
     resolvePendingSmartGitHubSubmit,
     selectedProjectGroup,
@@ -112,6 +114,7 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
             ? resolveFolderWorkspaceLaunchDraft(submitLinkedWorkItem, note)
             : null
         const folderWorkspaceCreated = await submitFolderWorkspaceCreate({
+          onWorkspaceCreated,
           projectGroup: selectedProjectGroup,
           name: smartGitHubMetadata?.workspaceName ?? name,
           lastAutoName: lastAutoNameRef.current,
@@ -197,6 +200,7 @@ export function useFolderSubmitOrchestration(input: FolderSubmitOrchestrationInp
       name,
       note,
       onCreated,
+      onWorkspaceCreated,
       persistDraft,
       resolvePendingSmartGitHubSubmit,
       selectedProjectGroup,

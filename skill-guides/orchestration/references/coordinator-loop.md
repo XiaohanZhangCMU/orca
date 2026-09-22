@@ -21,7 +21,7 @@ when an older CLI rejects the flag. A nested worker must respect
 
 ## Launch preferences
 
-For a fresh Claude, Codex, or Cursor terminal, `--model` accepts an opaque
+For a fresh Claude, Codex, Cursor, or OpenCode terminal, `--model` accepts an opaque
 provider model ID. Pass it only when the user named a model; otherwise omit it
 so the worker inherits the user's configured agent default. Add `--effort` only
 when that model supports it:
@@ -29,6 +29,9 @@ when that model supports it:
 ```text
 ORCA orchestration worker-start --task <task_id> --worktree current --agent claude --model opus --effort high --json
 ```
+
+OpenCode IDs use `provider/model` from the execution host's configuration.
+OpenCode does not support an `--effort` override.
 
 `--effort` requires `--model`; neither option combines with `--terminal`. A
 connected worker server must advertise launch-preference support before Orca

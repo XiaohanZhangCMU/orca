@@ -29,6 +29,7 @@ import {
   updateAgentComboboxCommandValue
 } from './agent-combobox-command-state'
 import { translate } from '@/i18n/i18n'
+import { AgentIconLabel } from './AgentIconLabel'
 
 type DefaultAgentPreference = TuiAgent | 'blank' | null
 
@@ -53,6 +54,7 @@ type AgentComboboxProps = {
   allowNarrowTrigger?: boolean
   allowBlankTerminal?: boolean
   emptyLabel?: string
+  workflowOption?: { label: string; icon: React.ReactNode; selected: boolean; onSelect: () => void }
 }
 
 const BLANK_VALUE = '__none__'
@@ -73,23 +75,6 @@ type AgentDefaultContextMenuProps = {
   children: React.ReactNode
   isDefault: boolean
   onSetDefault?: () => void
-}
-
-function AgentIconLabel({
-  icon,
-  label
-}: {
-  icon: React.ReactNode
-  label: string
-}): React.JSX.Element {
-  return (
-    <span className="inline-flex min-w-0 flex-1 items-center gap-1.5">
-      <span className="inline-flex size-3.5 shrink-0 items-center justify-center [&_img]:size-3.5 [&_svg]:size-3.5!">
-        {icon}
-      </span>
-      <span className="truncate leading-none">{label}</span>
-    </span>
-  )
 }
 
 function AgentDefaultContextMenu({
@@ -159,7 +144,8 @@ export default function AgentCombobox({
   onTriggerEnter,
   allowNarrowTrigger = false,
   allowBlankTerminal = true,
-  emptyLabel
+  emptyLabel,
+  workflowOption
 }: AgentComboboxProps): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -175,19 +161,25 @@ export default function AgentCombobox({
     () => (value ? (agents.find((agent) => agent.id === value) ?? null) : null),
     [agents, value]
   )
-  const selectedDefaultPreference = value ?? (allowBlankTerminal ? 'blank' : null)
+  const selectedDefaultPreference = workflowOption?.selected
+    ? null
+    : (value ?? (allowBlankTerminal ? 'blank' : null))
+  const workflowMatches = workflowOption?.label.toLowerCase().includes(query.trim().toLowerCase())
   const filteredAgents = useMemo(() => searchAgentPickerEntries(agents, query), [agents, query])
   const blankMatchesQuery = useMemo(
     () => allowBlankTerminal && agentPickerBlankTerminalMatches(query),
     [allowBlankTerminal, query]
   )
-  const activeCommandValue = getAgentPickerCommandValue({
-    blankValue: BLANK_VALUE,
-    blankMatchesQuery,
-    currentValue: value,
-    filteredAgents,
-    rawQuery: query
-  })
+  const activeCommandValue =
+    workflowMatches && (workflowOption?.selected || query.trim())
+      ? '__workflow__'
+      : getAgentPickerCommandValue({
+          blankValue: BLANK_VALUE,
+          blankMatchesQuery,
+          currentValue: value,
+          filteredAgents,
+          rawQuery: query
+        })
   const resolvedCommandState = resolveAgentComboboxCommandState(
     commandState,
     open,
@@ -335,7 +327,9 @@ export default function AgentCombobox({
               )}
               data-agent-combobox-root="true"
             >
-              {selectedAgent ? (
+              {workflowOption?.selected ? (
+                <AgentIconLabel icon={workflowOption.icon} label={workflowOption.label} />
+              ) : selectedAgent ? (
                 <AgentIconLabel
                   icon={<AgentIcon agent={selectedAgent.id} size={14} />}
                   label={selectedAgent.label}
@@ -382,11 +376,25 @@ export default function AgentCombobox({
                   'No agents match your search.'
                 )}
               </CommandEmpty>
+              {workflowOption &&
+                workflowMatches &&
+                renderItem({
+                  key: '__workflow__',
+                  itemValue: '__workflow__',
+                  isChecked: workflowOption.selected,
+                  isDefault: false,
+                  icon: workflowOption.icon,
+                  label: workflowOption.label,
+                  onSelect: () => {
+                    workflowOption.onSelect()
+                    handleOpenChange(false)
+                  }
+                })}
               {blankMatchesQuery
                 ? renderItem({
                     key: BLANK_VALUE,
                     itemValue: BLANK_VALUE,
-                    isChecked: value === null,
+                    isChecked: !workflowOption?.selected && value === null,
                     isDefault: defaultAgent === 'blank',
                     onSelect: () => handleSelect(null),
                     onSetDefault: onSetDefault ? () => onSetDefault('blank') : undefined,
@@ -401,7 +409,7 @@ export default function AgentCombobox({
                 renderItem({
                   key: agent.id,
                   itemValue: agent.id,
-                  isChecked: value === agent.id,
+                  isChecked: !workflowOption?.selected && value === agent.id,
                   isDefault: defaultAgent === agent.id,
                   onSelect: () => handleSelect(agent.id),
                   onSetDefault: onSetDefault ? () => onSetDefault(agent.id) : undefined,

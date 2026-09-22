@@ -5,6 +5,7 @@ import { getRenderRowKey } from '../listing/render-row'
 import type { RenderRow } from '../listing/render-row'
 
 export const GROUP_HEADER_ROW_HEIGHT = 28
+const GROUP_HEADER_WITH_HOST_ROW_HEIGHT = 44
 export const HOST_HEADER_ROW_HEIGHT = 32
 export const WORKTREE_SIDEBAR_VIRTUAL_ROW_GAP = 6
 const SECONDARY_GROUP_HEADER_TOP_MARGIN = 4
@@ -76,7 +77,7 @@ export function estimateRenderRowSize(
   }
   if (row?.type === 'header') {
     return (
-      GROUP_HEADER_ROW_HEIGHT +
+      (row.hostContextLabel ? GROUP_HEADER_WITH_HOST_ROW_HEIGHT : GROUP_HEADER_ROW_HEIGHT) +
       (shouldUseHeaderTopSpacing({
         rows,
         index,

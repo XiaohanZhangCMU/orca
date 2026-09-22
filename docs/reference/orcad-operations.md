@@ -4,6 +4,53 @@
 whatever supervises it: what it binds, what it owns on disk, who restarts what, and what its
 readiness payload actually proves.
 
+## Build and run from source
+
+Use Node 24 and the pnpm version pinned in `package.json`. On the server, install
+dependencies once, then build and start the Node runtime from this checkout:
+
+```sh
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm serve:source --port 6768 --pairing-address ws://127.0.0.1:6768
+```
+
+`serve:source` runs `build:server` before starting: it prepares the native terminal
+module for Node, builds the CLI, and bundles orcad and its daemon and watcher.
+Skipping install scripts avoids the desktop's Electron download and rebuild;
+`build:server` performs the required Node native-module check and rebuild instead.
+The host needs Python 3, make, and a C++ compiler if that rebuild is needed.
+Dependencies and native modules must be installed on the execution host; do not
+copy a laptop's `node_modules` into a Linux pod.
+
+To build without starting, run `pnpm build:server`. The built server can then be
+started directly, including under a supervisor:
+
+```sh
+node out/orcad/orcad.js --port 6768 --pairing-address ws://127.0.0.1:6768 --json
+```
+
+The server binds to loopback by default. Keep a tunnel running on the laptop:
+
+```sh
+ssh -N -L 127.0.0.1:6768:127.0.0.1:6768 <ssh-host>
+# Or, for an existing Kubernetes pod:
+kubectl --context <context> -n <namespace> port-forward --address 127.0.0.1 pod/<pod> 6768:6768
+```
+
+Paste the printed pairing URL into **Settings → Remote Orca Servers** on the
+laptop. If the local forwarded port differs, use that port in `--pairing-address`.
+Pairing URLs contain credentials: keep readiness output private. Closing the
+tunnel disconnects the laptop; the server and its terminals keep running on the
+host. Pod replacement discards their processes and any files outside persistent
+volumes. Use `ORCA_USER_DATA` to choose a persistent data directory when available.
+
+Use `--mobile-pairing` to print a phone-scoped link instead of the default desktop/runtime link.
+It cannot be combined with `--no-pairing`. The advertised address must be reachable by the phone;
+a loopback bind can remain private behind an explicitly configured Tailscale TCP proxy. This flag
+does not widen the bind or create a network route, and preserves existing desktop pairing grants.
+The fork's optional [pod tailnet proxy](../../extensions/pod-setup/tailnet-proxy/README.md) documents
+that deployment. Do not run a second server against an already-owned profile to generate a link.
+
 ## Two long-lived processes, not one
 
 A deployment is **orcad** plus **the terminal daemon**.

@@ -6,12 +6,23 @@ import { DeviceRegistry } from '../runtime/device-registry'
 import { RuntimeMobileNotificationController } from '../runtime/runtime-mobile-notification-controller'
 import { PushUnregisterOutbox } from '../runtime/push/push-unregister-outbox'
 import { createPushHostKeypair } from '../runtime/push/push-host-challenge-fixtures'
+import { HEADLESS_RUNTIME_WINDOW_ID } from '../../shared/runtime-types'
 
 const state = vi.hoisted(() => ({
   root: '',
   controller: null as RuntimeMobileNotificationController | null,
   registry: null as DeviceRegistry | null,
   rpcStarted: false,
+  registerPtys: vi.fn(async () => {}),
+  syncWindowGraph: vi.fn(),
+  startRpc: vi.fn(),
+  pairing: vi.fn(() => ({
+    available: true as const,
+    pairingUrl: 'orca://pair?code=test',
+    endpoint: 'ws://100.64.1.20:6770',
+    deviceId: 'test-device',
+    webClientUrl: null
+  })),
   register: vi.fn(async () => ({ ok: true, registrationId: 'headless-registration' })),
   send: vi.fn(async () => ({ ok: true, results: [] }))
 }))
@@ -29,7 +40,7 @@ vi.mock('./orcad-daemon-supervision', () => ({
 vi.mock('./orcad-health', () => ({ collectOrcadHealth: async () => ({}) }))
 vi.mock('../daemon/daemon-init', () => ({ daemonOwnsFreshPersistentPtys: () => false }))
 vi.mock('../ipc/pty', () => ({
-  registerHeadlessPtyRuntime: async () => {},
+  registerHeadlessPtyRuntime: state.registerPtys,
   getLocalPtyProvider: () => null,
   getSshPtyProvider: () => null
 }))
@@ -52,6 +63,7 @@ vi.mock('../server/serve-readiness', () => ({
 }))
 vi.mock('../runtime/orca-runtime', () => ({
   OrcaRuntimeService: class {
+    syncWindowGraph = state.syncWindowGraph
     getRuntimeId() {
       return 'headless-runtime'
     }
@@ -72,7 +84,9 @@ vi.mock('../runtime/orca-runtime', () => ({
 }))
 vi.mock('../runtime/runtime-rpc', () => ({
   OrcaRuntimeRpcServer: class {
+    createPairingOffer = state.pairing
     async start() {
+      state.startRpc()
       state.rpcStarted = true
     }
     async stop() {
@@ -109,7 +123,35 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-it('starts push after RPC identity is available and stops dispatch on shutdown', async () => {
+it.each([false, true])(
+  'publishes the selected phone scope (%s) without changing runtime pairing',
+  async (mobilePairing) => {
+    state.root = mkdtempSync(join(tmpdir(), 'orca-headless-pairing-'))
+    state.controller = new RuntimeMobileNotificationController()
+    state.registry = new DeviceRegistry(state.root)
+    const { startOrcad } = await import('./orcad-entry')
+    const host = await startOrcad({
+      mobilePairing,
+      pairingAddress: 'ws://100.64.1.20:6770',
+      json: true
+    })
+    try {
+      expect(state.pairing).toHaveBeenCalledExactlyOnceWith({
+        address: 'ws://100.64.1.20:6770',
+        name: expect.stringMatching(mobilePairing ? /^Mobile / : /^CLI /),
+        scope: mobilePairing ? 'mobile' : 'runtime'
+      })
+      expect(host.readiness.pairing).toMatchObject({
+        available: true,
+        scope: mobilePairing ? 'mobile' : 'runtime'
+      })
+    } finally {
+      await host.stop()
+    }
+  }
+)
+
+it('initializes the headless graph before RPC and push, then stops dispatch on shutdown', async () => {
   state.root = mkdtempSync(join(tmpdir(), 'orca-headless-push-'))
   state.controller = new RuntimeMobileNotificationController()
   state.registry = new DeviceRegistry(state.root)
@@ -117,6 +159,16 @@ it('starts push after RPC identity is available and stops dispatch on shutdown',
   const { startOrcad } = await import('./orcad-entry')
   const host = await startOrcad({ noPairing: true, json: true })
   try {
+    expect(state.syncWindowGraph).toHaveBeenCalledExactlyOnceWith(HEADLESS_RUNTIME_WINDOW_ID, {
+      tabs: [],
+      leaves: []
+    })
+    expect(state.syncWindowGraph.mock.invocationCallOrder[0]).toBeGreaterThan(
+      state.registerPtys.mock.invocationCallOrder[0]
+    )
+    expect(state.startRpc.mock.invocationCallOrder[0]).toBeGreaterThan(
+      state.syncWindowGraph.mock.invocationCallOrder[0]
+    )
     const result = await state.controller.registerPushDevice({
       deviceId: phone.deviceId,
       platform: 'android',

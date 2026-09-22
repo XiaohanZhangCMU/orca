@@ -56,6 +56,7 @@ import { browserApi } from './api/browser-bridge'
 import { emulatorApi } from './api/emulator-bridge'
 import { hooksApi } from './api/hooks-bridge'
 import { ephemeralVmApi } from './api/ephemeral-vm-bridge'
+import { basetenHostsApi } from './api/baseten-hosts-bridge'
 import { cacheApi } from './api/cache-bridge'
 import { sessionApi } from './api/session-bridge'
 import { remoteWorkspaceApi } from './api/remote-workspace-bridge'
@@ -154,6 +155,7 @@ const api = {
   emulator: emulatorApi,
   hooks: hooksApi,
   ephemeralVm: ephemeralVmApi,
+  basetenHosts: basetenHostsApi,
   cache: cacheApi,
   session: sessionApi,
   remoteWorkspace: remoteWorkspaceApi,

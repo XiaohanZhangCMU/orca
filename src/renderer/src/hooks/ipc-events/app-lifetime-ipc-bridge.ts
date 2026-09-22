@@ -1,4 +1,3 @@
-import type { RuntimeHostStatusSnapshot } from '../../../../shared/runtime-host-status'
 import { getTabIdsAwaitingHostHydrationRemount } from '@/lib/parked-terminal-host-hydration'
 import { emitAutomationsChangedWindowEvent } from '@/lib/automations-changed-window-event'
 import { createBackgroundSleepingAgentWakeDispatcher } from '@/lib/wake-sleeping-agents-in-background'
@@ -19,6 +18,7 @@ import { registerProjectCatalogIpcBridge } from './project-catalog-ipc-bridge'
 import { registerRateLimitIpcBridge } from './rate-limit-ipc-bridge'
 import { registerRemoteWorkspaceIpcBridge } from './remote-workspace-ipc-bridge'
 import { registerRuntimeClientIpcBridge } from './runtime-client-ipc-bridge'
+import { registerRuntimeHostStatusIpcBridge } from './runtime-host-status-ipc-bridge'
 import { registerSessionTabIpcBridge } from './session-tab-ipc-bridge'
 import { registerSettingsAndSidebarIpcBridge } from './settings-sidebar-ipc-bridge'
 import { registerTabLifecycleIpcBridge } from './tab-lifecycle-ipc-bridge'
@@ -64,24 +64,7 @@ export function installAppLifetimeIpcEvents(
   )
 
   const worktreeRuntime = createWorktreeEventRuntime(unsubs, isRuntimeEnvironmentActive)
-  const statusApi = window.api.runtimeEnvironments
-  if (statusApi?.onStatusChanged) {
-    const apply = (snapshot: RuntimeHostStatusSnapshot): void => {
-      useAppStore.getState().applyRuntimeHostStatusSnapshot(snapshot)
-    }
-    let stopped = false
-    unsubs.push(statusApi.onStatusChanged(apply), () => {
-      stopped = true
-    })
-    void statusApi
-      .getStatusSnapshots()
-      .then((snapshots) => {
-        if (!stopped) {
-          snapshots.forEach(apply)
-        }
-      })
-      .catch((error) => console.error('Failed to read runtime status snapshots:', error))
-  }
+  registerRuntimeHostStatusIpcBridge(unsubs)
   const unsubscribeRuntimeEnvironmentStore = registerRuntimeClientIpcBridge(unsubs, worktreeRuntime)
   registerProjectCatalogIpcBridge(
     unsubs,

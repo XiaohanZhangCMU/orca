@@ -24,6 +24,7 @@ export function WorktreeCardMetaRow({
     repo,
     hostContextLabel,
     identityDisplay,
+    podWorkspacePath,
     isFolder,
     newCardStyle,
     branch,
@@ -58,7 +59,13 @@ export function WorktreeCardMetaRow({
 
         {showHostContextBadge && <WorktreeHostContextBadge label={hostContextLabel!} />}
 
-        {showIdentityInNewCard ? (
+        {podWorkspacePath ? (
+          <TruncatedSidebarLabel
+            text={podWorkspacePath}
+            className="font-mono text-xs text-muted-foreground leading-none"
+            tooltipEnabled={!hasHoverDetails}
+          />
+        ) : showIdentityInNewCard ? (
           <TruncatedSidebarLabel
             text={identityDisplay!}
             className="text-[11px] text-muted-foreground leading-none"

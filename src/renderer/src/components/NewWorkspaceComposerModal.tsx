@@ -1,4 +1,6 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Users } from 'lucide-react'
+import { openManagerTeam } from '@/features/manager-team/manager-team-navigation'
 import { useAppStore } from '@/store'
 import { lazyWithRetry } from '@/lib/lazy-with-retry'
 import {
@@ -117,6 +119,7 @@ function QuickTabBody({
   active: boolean
 }): React.JSX.Element {
   const settings = useAppStore((s) => s.settings)
+  const [teamWorkflow, setTeamWorkflow] = useState(false)
   const {
     cardProps,
     composerRef,
@@ -140,6 +143,7 @@ function QuickTabBody({
     ...(modalData.initialBaseBranch ? { initialBaseBranch: modalData.initialBaseBranch } : {}),
     persistDraft: false,
     onCreated: onClose,
+    onWorkspaceCreated: teamWorkflow ? openManagerTeam : undefined,
     isSubmissionCancelled,
     ...(modalData.telemetrySource ? { telemetrySource: modalData.telemetrySource } : {}),
     enableIssueAutomation: modalData.enableIssueAutomation === true,
@@ -180,12 +184,13 @@ function QuickTabBody({
   const quickAgent = resolvedQuickAgentSelection.quickAgent
 
   const handleQuickAgentChange = useCallback((agent: TuiAgent | null) => {
+    setTeamWorkflow(false)
     setQuickAgentOverride(agent)
   }, [])
 
   const handleCreate = useCallback(async (): Promise<void> => {
-    await submitQuick(quickAgent)
-  }, [quickAgent, submitQuick])
+    await submitQuick(teamWorkflow ? null : quickAgent)
+  }, [quickAgent, submitQuick, teamWorkflow])
   // Why: Add Project layers over the composer as a nested dialog instead of
   // replacing it in the activeModal slot — closing the composer mid-flow (and
   // losing the typed name/prompt) was the old, abrupt behavior. Once opened it
@@ -300,9 +305,15 @@ function QuickTabBody({
         onComposerNodeChange={onComposerNodeChange}
         nameInputRef={nameInputRef}
         quickAgent={quickAgent}
+        workflowOption={{
+          label: 'Team workflow',
+          icon: <Users />,
+          selected: teamWorkflow,
+          onSelect: () => setTeamWorkflow(true)
+        }}
         onQuickAgentChange={handleQuickAgentChange}
         {...cardProps}
-        primaryActionLabel={primaryActionLabel}
+        primaryActionLabel={teamWorkflow ? 'Create workspace & configure team' : primaryActionLabel}
         onOpenAgentSettings={() => setAgentSettingsOpen(true)}
         onCreate={() => void handleCreate()}
         onAddProjectOverride={handleOpenAddProject}

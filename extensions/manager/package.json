@@ -1,0 +1,12 @@
+{
+  "name": "@xiaohan/orca-manager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An additive manager/IC workflow and HTML report publisher for Orca",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

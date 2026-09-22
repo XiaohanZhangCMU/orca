@@ -11,6 +11,22 @@ import AgentCombobox from './AgentCombobox'
 afterEach(cleanup)
 
 describe('AgentCombobox', () => {
+  it('offers a separate workflow without inventing an agent provider or changing the default', () => {
+    const onSelect = vi.fn()
+    const onValueChange = vi.fn()
+    render(
+      <AgentCombobox
+        agents={AGENT_CATALOG}
+        value="claude"
+        onValueChange={onValueChange}
+        workflowOption={{ label: 'Team workflow', selected: false, icon: null, onSelect }}
+      />
+    )
+    fireEvent.click(screen.getByRole('combobox'))
+    fireEvent.click(screen.getByRole('option', { name: 'Team workflow' }))
+    expect(onSelect).toHaveBeenCalledTimes(1)
+    expect(onValueChange).not.toHaveBeenCalled()
+  })
   it('sets the closed trigger selection as the default agent', () => {
     const onSetDefault = vi.fn()
     render(

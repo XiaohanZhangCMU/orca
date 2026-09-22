@@ -34,6 +34,7 @@ export type NewWorkspaceComposerCardProps = {
   onComposerNodeChange?: (node: HTMLDivElement | null) => void
   nameInputRef?: React.RefObject<HTMLInputElement | null>
   quickAgent: TuiAgent | null
+  workflowOption?: { label: string; icon: React.ReactNode; selected: boolean; onSelect: () => void }
   onQuickAgentChange: (agent: TuiAgent | null) => void
   eligibleRepos: readonly RepoOption[]
   repoId: string

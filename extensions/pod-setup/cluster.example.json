@@ -1,0 +1,10 @@
+{
+  "name": "xiaohan-orca-cpu",
+  "namespace": "ori-rcano-testing",
+  "kubeconfig": "~/.kube/ori-dfw-prod-1-token.yaml",
+  "dreamteam": "~/Codes/dreamteam",
+  "source": ".",
+  "storage": "250Gi",
+  "persistent": true,
+  "allowUnverified": ["notion"]
+}

@@ -19,6 +19,7 @@ export function useComposerSubmitOrchestration(
   source: ComposerSourceState
 ): ComposerSubmitState {
   const folderSubmitOrchestration = useFolderSubmitOrchestration({
+    onWorkspaceCreated: target.composerTargetStore.onWorkspaceCreated,
     clearNewWorkspaceDraft: target.composerTargetStore.clearNewWorkspaceDraft,
     createFolderWorkspace: target.composerTargetStore.createFolderWorkspace,
     decisions: target.composerTargetStore.decisions,
@@ -189,6 +190,7 @@ export function useComposerSubmitOrchestration(
     smartNameMode: target.workspaceIdentityState.smartNameMode
   })
   const quickCreationExecution = useQuickCreationExecution({
+    onWorkspaceCreated: target.composerTargetStore.onWorkspaceCreated,
     clearNewWorkspaceDraft: target.composerTargetStore.clearNewWorkspaceDraft,
     createMultiple: target.asyncComposerState.createMultiple,
     effectivePresetId: target.derivedComposerState.effectivePresetId,
@@ -219,6 +221,7 @@ export function useComposerSubmitOrchestration(
     telemetrySource: target.composerTargetStore.telemetrySource
   })
   const quickSubmitAction = useQuickSubmitAction({
+    onWorkspaceCreated: target.composerTargetStore.onWorkspaceCreated,
     effectiveLinkedPR: target.derivedComposerState.effectiveLinkedPR,
     executeQuickCreation: quickCreationExecution.executeQuickCreation,
     fallbackCreatureName: target.derivedComposerState.fallbackCreatureName,

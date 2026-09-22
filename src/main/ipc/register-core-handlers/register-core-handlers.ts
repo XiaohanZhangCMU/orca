@@ -24,6 +24,7 @@ import { registerRateLimitHandlers } from '../rate-limits'
 import { registerRuntimeHandlers } from '../runtime'
 import { registerRuntimeEnvironmentHandlers } from '../runtime-environments'
 import { registerEphemeralVmHandlers } from '../ephemeral-vm'
+import { registerBasetenHostHandlers } from '../../baseten-hosts/register-host-handlers'
 import { registerAiVaultHandlers } from '../ai-vault'
 import { registerAiVaultSearchHandlers } from '../ai-vault-search'
 import { registerNativeChatHandlers } from '../native-chat'
@@ -214,6 +215,7 @@ export function registerCoreHandlers(
   }
   registerFilesystemWatcherHandlers()
   registerRuntimeHandlers(runtime)
+  registerBasetenHostHandlers()
   registerRuntimeEnvironmentHandlers(store)
   registerEphemeralVmHandlers(store, pluginService)
   registerAiVaultSearchHandlers({

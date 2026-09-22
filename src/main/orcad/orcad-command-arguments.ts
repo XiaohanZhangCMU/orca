@@ -21,6 +21,10 @@ export function parseArgs(argv: string[]): OrcadOptions {
       options.json = true
     } else if (arg === '--no-pairing') {
       options.noPairing = true
+    } else if (arg === '--mobile-pairing') {
+      options.mobilePairing = true
+    } else if (arg === '--with-mobile-pairing') {
+      options.withMobilePairing = true
     } else if (arg === '--bind') {
       const value = argv[i + 1]
       if (value === undefined) {
@@ -38,6 +42,9 @@ export function parseArgs(argv: string[]): OrcadOptions {
     } else {
       throw new Error(`Unknown argument: ${arg}`)
     }
+  }
+  if ((options.mobilePairing || options.withMobilePairing) && options.noPairing) {
+    throw new Error('Use either --mobile-pairing or --no-pairing, not both.')
   }
   return options
 }

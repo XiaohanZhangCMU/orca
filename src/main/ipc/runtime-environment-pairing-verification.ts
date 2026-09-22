@@ -5,6 +5,7 @@ import {
 import { parseHostAccessLink } from '../../shared/remote-pairing-address'
 import {
   verifyRemotePairingRuntimeStatus,
+  type RemotePairingFailure,
   type VerifyAndAddRuntimeEnvironmentResult
 } from '../../shared/remote-pairing-verification'
 import { RemoteRuntimeClientError } from '../../shared/remote-runtime-client-error'
@@ -12,6 +13,7 @@ import { sendRemoteRuntimeRequest } from '../../shared/remote-runtime-client'
 import { ELECTRON_REMOTE_RUNTIME_CLIENT_CAPABILITIES } from '../../shared/protocol-version'
 import { redactRuntimeEnvironment } from '../../shared/runtime-environments'
 import type { RuntimeStatus } from '../../shared/runtime-types'
+import type { PairingOffer } from '../../shared/pairing'
 
 type VerifyAndAddRuntimeEnvironmentArgs = {
   name: string
@@ -23,6 +25,40 @@ export async function verifyAndAddRuntimeEnvironmentFromPairingCode(
   userDataPath: string,
   args: VerifyAndAddRuntimeEnvironmentArgs
 ): Promise<VerifyAndAddRuntimeEnvironmentResult> {
+  const verified = await verifyRuntimeEnvironmentPairingCode(args)
+  if (!verified.ok) {
+    return verified
+  }
+  let environment: ReturnType<typeof addEnvironmentFromPairingCode>
+  try {
+    environment = addEnvironmentFromPairingCode(userDataPath, {
+      ...args,
+      ...(verified.usesSshTunnel ? { connectionDependency: 'ssh-tunnel' as const } : {})
+    })
+  } catch (error) {
+    return {
+      ok: false,
+      kind: 'environment-save-failed',
+      message:
+        error instanceof RuntimeEnvironmentStoreError && error.code === 'invalid_argument'
+          ? error.message
+          : 'Orca verified the host but could not save it. Check local settings storage and try again.'
+    }
+  }
+  return {
+    ok: true,
+    environment: redactRuntimeEnvironment(environment),
+    runtimeStatus: verified.runtimeStatus
+  }
+}
+
+export async function verifyRuntimeEnvironmentPairingCode(args: {
+  pairingCode: string
+  allowLoopback?: boolean
+}): Promise<
+  | { ok: true; pairing: PairingOffer; runtimeStatus: RuntimeStatus; usesSshTunnel: boolean }
+  | RemotePairingFailure
+> {
   const parsed = parseHostAccessLink(args.pairingCode)
   if (!parsed.ok) {
     return { ok: false, kind: 'access-link-invalid', message: parsed.message }
@@ -62,34 +98,15 @@ export async function verifyAndAddRuntimeEnvironmentFromPairingCode(
     return classifyPairingVerificationError(error, parsed.value.displayEndpoint)
   }
 
-  const usesSshTunnel = parsed.value.endpointKind === 'loopback' && args.allowLoopback === true
-  let environment: ReturnType<typeof addEnvironmentFromPairingCode>
-  try {
-    environment = addEnvironmentFromPairingCode(userDataPath, {
-      ...args,
-      ...(usesSshTunnel ? { connectionDependency: 'ssh-tunnel' as const } : {})
-    })
-  } catch (error) {
-    return {
-      ok: false,
-      kind: 'environment-save-failed',
-      message:
-        error instanceof RuntimeEnvironmentStoreError && error.code === 'invalid_argument'
-          ? error.message
-          : 'Orca verified the host but could not save it. Check local settings storage and try again.'
-    }
-  }
   return {
     ok: true,
-    environment: redactRuntimeEnvironment(environment),
-    runtimeStatus
+    pairing: parsed.value.pairing,
+    runtimeStatus,
+    usesSshTunnel: parsed.value.endpointKind === 'loopback' && args.allowLoopback === true
   }
 }
 
-function classifyPairingVerificationError(
-  error: unknown,
-  endpoint: string
-): VerifyAndAddRuntimeEnvironmentResult {
+function classifyPairingVerificationError(error: unknown, endpoint: string): RemotePairingFailure {
   if (error instanceof RemoteRuntimeClientError) {
     if (error.code === 'invalid_argument') {
       return invalidAccessLinkResult()
@@ -127,7 +144,7 @@ function classifyPairingVerificationError(
   return unreachableHostResult(endpoint)
 }
 
-function invalidAccessLinkResult(): VerifyAndAddRuntimeEnvironmentResult {
+function invalidAccessLinkResult(): RemotePairingFailure {
   return {
     ok: false,
     kind: 'access-link-invalid',
@@ -135,7 +152,7 @@ function invalidAccessLinkResult(): VerifyAndAddRuntimeEnvironmentResult {
   }
 }
 
-function unreachableHostResult(endpoint: string): VerifyAndAddRuntimeEnvironmentResult {
+function unreachableHostResult(endpoint: string): RemotePairingFailure {
   return {
     ok: false,
     kind: 'host-unreachable',

@@ -24,6 +24,7 @@ import type { DashboardApi, TerminalPreviewApi } from './api/dashboard-api'
 import type { DocPreviewApi } from './api/doc-preview-api'
 import type { EmulatorApi } from './api/emulator-api'
 import type { EphemeralVmApi } from './api/ephemeral-vm-api'
+import type { BasetenHostsApi } from '../shared/baseten-hosts'
 import type { ExportApi, FilesystemApi } from './api/filesystem-api'
 import type { GitInspectionApi } from './api/git-inspection-api'
 import type { GitOperationApi } from './api/git-operation-api'
@@ -120,6 +121,7 @@ export type PreloadApi = {
   emulator: EmulatorApi
   hooks: HooksApi
   ephemeralVm: EphemeralVmApi
+  basetenHosts?: BasetenHostsApi
   cache: WorkspaceSessionApi['cache']
   session: WorkspaceSessionApi['session']
   remoteWorkspace: WorkspaceSessionApi['remoteWorkspace']

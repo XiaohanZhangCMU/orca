@@ -14,6 +14,21 @@ import { OrcadBindAddressError } from './orcad-bind-address'
 import { OrcadInstanceLockError } from './orcad-instance-lock'
 
 describe('parseArgs', () => {
+  it('can publish a separate mobile grant without changing the desktop grant or bind', () => {
+    expect(parseArgs(['--with-mobile-pairing', '--bind', '127.0.0.1'])).toEqual({
+      withMobilePairing: true,
+      bind: '127.0.0.1'
+    })
+    expect(() => parseArgs(['--with-mobile-pairing', '--no-pairing'])).toThrow('not both')
+  })
+  it('supports explicit mobile pairing without changing the default or widening the bind', () => {
+    expect(parseArgs(['--mobile-pairing', '--pairing-address', 'ws://100.64.1.20:6770'])).toEqual({
+      mobilePairing: true,
+      pairingAddress: 'ws://100.64.1.20:6770'
+    })
+    expect(() => parseArgs(['--mobile-pairing', '--no-pairing'])).toThrow('not both')
+  })
+
   it('accepts --bind and leaves it unset when absent', () => {
     expect(parseArgs(['--bind', '0.0.0.0'])).toEqual({ bind: '0.0.0.0' })
     expect(parseArgs([])).toEqual({})

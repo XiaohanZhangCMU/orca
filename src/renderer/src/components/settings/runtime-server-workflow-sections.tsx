@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '../ui/button'
 import { RuntimePairingUrlGenerator } from './RuntimePairingUrlGenerator'
 
-export type RemoteServerWorkflow = 'connect' | 'cloud-vm' | 'share'
+export type RemoteServerWorkflow = 'connect' | 'cloud-vm' | 'share' | 'baseten'
 
 export function RuntimeServerWorkflowPicker({
   canGeneratePairingUrl,
@@ -24,10 +24,11 @@ export function RuntimeServerWorkflowPicker({
         'auto.components.settings.RuntimeEnvironmentsPane.workflow',
         'Remote server workflow'
       )}
-      className={cn('grid gap-2 sm:grid-cols-2', canGeneratePairingUrl && 'sm:grid-cols-3')}
+      className="grid gap-2 sm:grid-cols-2"
     >
       {(
         [
+          ['baseten', 'Setup Baseten host', 'Create a persistent CPU pod and pair your devices'],
           [
             'connect',
             translate(

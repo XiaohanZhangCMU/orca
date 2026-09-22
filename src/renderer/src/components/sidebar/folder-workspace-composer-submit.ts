@@ -63,6 +63,7 @@ type SubmitFolderWorkspaceCreateParams = {
   runtimeEnvironmentId?: string | null
   createFolderWorkspace: (input: FolderWorkspaceCreateInput) => Promise<FolderWorkspace | null>
   onOpenChange: (open: boolean) => void
+  onWorkspaceCreated?: (worktreeId: string) => void
 }
 
 export async function submitFolderWorkspaceCreate({
@@ -82,7 +83,8 @@ export async function submitFolderWorkspaceCreate({
   launchSource = 'sidebar',
   runtimeEnvironmentId = null,
   createFolderWorkspace,
-  onOpenChange
+  onOpenChange,
+  onWorkspaceCreated
 }: SubmitFolderWorkspaceCreateParams): Promise<boolean> {
   const linkedName = linkedWorkItem ? getLinkedItemDisplayName(linkedWorkItem) : null
   const nameIsAutoManaged = !name.trim() || name === lastAutoName || isWorkItemLookupText(name)
@@ -263,5 +265,6 @@ export async function submitFolderWorkspaceCreate({
     // open if the follow-up reveal/startup path hits a transient issue.
     console.error('Failed to activate folder workspace after create:', error)
   }
+  onWorkspaceCreated?.(folderWorkspaceKey(workspace.id))
   return true
 }
