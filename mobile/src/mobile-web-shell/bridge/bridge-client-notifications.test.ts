@@ -3,10 +3,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BridgeClientNotReadyError } from './bridge-client-errors'
 import {
+  BRIDGE_EXTERNAL_LINK_GRANT,
   BRIDGE_FAULT_GRANT,
   BRIDGE_NAVIGATE_BACK_NOTIFY,
   BRIDGE_PROTOCOL_VERSION
 } from './bridge-envelope'
+import { BRIDGE_MAX_MESSAGE_BYTES, utf8ByteLength } from './bridge-caps'
+import {
+  BRIDGE_HAPTICS_GRANT,
+  BRIDGE_HAPTICS_KINDS,
+  BRIDGE_HAPTICS_NOTIFY
+} from './bridge-haptics-notify'
 import { GRANTS, INIT, createPageClient } from './bridge-page-client-test-harness'
 
 beforeEach(() => {
@@ -79,6 +86,7 @@ describe('the notify guard before init', () => {
     const beforeNotifies = page.sent.length
     expect(page.client.notifyNavigate('/h/host-1')).toBe(false)
     expect(page.client.notifyNavigateBack()).toBe(false)
+    expect(page.client.notifyExternalLink('https://example.com')).toBe(false)
     expect(page.client.notifyStorageWrite('orca:last-visited-worktree', 'value')).toBe(false)
     expect(page.sent).toHaveLength(beforeNotifies)
   })
@@ -143,5 +151,152 @@ describe('navigate-back', () => {
     page.deliver({ ...INIT, grants: { ...GRANTS, native: ['navigate'] } })
     page.client.close()
     expect(page.client.notifyNavigateBack()).toBe(false)
+  })
+})
+
+/**
+ * The verb whose refusal the caller has to hear about.
+ *
+ * Nothing crosses back for a notify, so the boolean is the only answer a tap gets. A URL outside
+ * the three schemes is refused here rather than posted and dropped at the frame, because the page
+ * reporting "opened" into a frame the shell threw away is the dead tap the grant exists to rule out.
+ */
+describe('externalLink', () => {
+  function granted(): ReturnType<typeof createPageClient> {
+    const page = createPageClient()
+    page.deliver({ ...INIT, grants: { ...GRANTS, native: [BRIDGE_EXTERNAL_LINK_GRANT] } })
+    return page
+  }
+
+  it('posts an allowed URL under its own grant', () => {
+    const page = granted()
+    expect(page.client.notifyExternalLink('https://github.com/stablyai/orca')).toBe(true)
+    expect(page.frames().at(-1)).toEqual({
+      v: BRIDGE_PROTOCOL_VERSION,
+      type: 'notify',
+      name: BRIDGE_EXTERNAL_LINK_GRANT,
+      url: 'https://github.com/stablyai/orca'
+    })
+  })
+
+  it('posts the URL the parser read, not the string the caller handed it', () => {
+    const page = granted()
+    expect(page.client.notifyExternalLink('  https://example.com/a\r\n  ')).toBe(true)
+    expect(page.frames().at(-1)).toEqual({
+      v: BRIDGE_PROTOCOL_VERSION,
+      type: 'notify',
+      name: BRIDGE_EXTERNAL_LINK_GRANT,
+      url: 'https://example.com/a'
+    })
+  })
+
+  it('answers false for a scheme the grant does not cover, and posts nothing', () => {
+    const page = granted()
+    const beforeNotify = page.sent.length
+    for (const url of ['javascript:alert(1)', 'file:///etc/passwd', '/h/host-a/tasks']) {
+      expect(page.client.notifyExternalLink(url), url).toBe(false)
+    }
+    expect(page.sent).toHaveLength(beforeNotify)
+  })
+
+  it('stays quiet against a shell that granted no externalLink', () => {
+    const page = createPageClient()
+    page.deliver({ ...INIT, grants: { ...GRANTS, native: ['navigate', 'storage'] } })
+    const beforeNotify = page.sent.length
+    expect(page.client.notifyExternalLink('https://example.com')).toBe(false)
+    expect(page.sent).toHaveLength(beforeNotify)
+  })
+
+  it('answers false after close rather than throwing into a teardown', () => {
+    const page = granted()
+    page.client.close()
+    expect(page.client.notifyExternalLink('https://example.com')).toBe(false)
+  })
+})
+
+/**
+ * The haptic the page asks for and hears nothing back about.
+ *
+ * Gated at the call site as well as at the frame, for the reason every gated notify is: `notify` is
+ * a closed list, so a shell that granted no haptics refuses the whole frame, and a caller told the
+ * frame left would be told a lie. Unlike `externalLink` nobody reads the answer — a tap that did
+ * not buzz is every tap on every phone before this page existed — so it is returned and not logged.
+ */
+describe('bridge client haptics', () => {
+  const granted = (page: ReturnType<typeof createPageClient>): void => {
+    page.deliver({ ...INIT, grants: { ...GRANTS, native: [BRIDGE_HAPTICS_GRANT] } })
+  }
+
+  it('posts one frame per kind, carrying the kind it was asked for', () => {
+    const page = createPageClient()
+    granted(page)
+    for (const kind of BRIDGE_HAPTICS_KINDS) {
+      expect(page.client.notifyHaptics(kind), kind).toBe(true)
+    }
+    expect(page.frames().slice(1)).toEqual(
+      BRIDGE_HAPTICS_KINDS.map((kind) => ({
+        v: BRIDGE_PROTOCOL_VERSION,
+        type: 'notify',
+        name: BRIDGE_HAPTICS_NOTIFY,
+        kind
+      }))
+    )
+  })
+
+  it('stays quiet against a shell that granted nothing, because the frame would be refused whole', () => {
+    const page = createPageClient()
+    page.start()
+    expect(page.client.notifyHaptics('selection')).toBe(false)
+    expect(page.sent).toHaveLength(1)
+  })
+
+  it('stays quiet against a shell that granted the notify name instead of the token', () => {
+    const page = createPageClient()
+    page.deliver({ ...INIT, grants: { ...GRANTS, native: [BRIDGE_HAPTICS_NOTIFY] } })
+    expect(page.client.notifyHaptics('selection')).toBe(false)
+    expect(page.sent).toHaveLength(1)
+  })
+
+  it('answers false before a session and after close rather than throwing inside a tap handler', () => {
+    const early = createPageClient()
+    expect(early.client.notifyHaptics('selection')).toBe(false)
+    const page = createPageClient()
+    granted(page)
+    page.client.close()
+    expect(page.client.notifyHaptics('selection')).toBe(false)
+    expect(page.frames().at(-1)).toEqual({ v: BRIDGE_PROTOCOL_VERSION, type: 'close' })
+  })
+})
+
+/**
+ * What a haptic costs on the wire, measured off the frame the client posted rather than a written
+ * copy of its shape: the two drift, and the one that drifts is the budget.
+ *
+ * The worst kind is the longest name, and a scrolling list is the worst case for the count: the
+ * file explorer plays `selection` once per row, so twelve rows is the number to think about.
+ */
+describe('the bytes a haptic spends', () => {
+  it('costs well under a thousandth of the frame cap, whichever kind it is', () => {
+    const page = createPageClient()
+    page.deliver({ ...INIT, grants: { ...GRANTS, native: [BRIDGE_HAPTICS_GRANT] } })
+    const bytes = BRIDGE_HAPTICS_KINDS.map((kind) => {
+      page.client.notifyHaptics(kind)
+      return utf8ByteLength(page.sent.at(-1) ?? '')
+    })
+    // One per kind, widest first: `mediumImpact` is the longest name and `error` the shortest.
+    expect(bytes).toEqual([77, 74, 72, 70, 73])
+    expect(Math.max(...bytes) / BRIDGE_MAX_MESSAGE_BYTES).toBeLessThan(0.0002)
+  })
+
+  it('costs a twelve-row scroll under a kilobyte, one frame per row', () => {
+    const page = createPageClient()
+    page.deliver({ ...INIT, grants: { ...GRANTS, native: [BRIDGE_HAPTICS_GRANT] } })
+    const before = page.sent.length
+    for (let row = 0; row < 12; row += 1) {
+      page.client.notifyHaptics('selection')
+    }
+    const scroll = page.sent.slice(before)
+    expect(scroll).toHaveLength(12)
+    expect(scroll.reduce((total, json) => total + utf8ByteLength(json), 0)).toBe(888)
   })
 })
